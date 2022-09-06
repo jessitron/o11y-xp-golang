@@ -26,10 +26,27 @@ func InitializeTracing(ctx context.Context) *otlp.Exporter {
 	//   log.Fatal(err)
 	// }
 
-	// honeycomb OTLP gRPC exporter
-	apikey, _ := os.LookupEnv("HONEYCOMB_API_KEY")
 	serviceName, _ := os.LookupEnv("SERVICE_NAME")
-	os.Stderr.WriteString(fmt.Sprintf("Sending to Honeycomb with API Key <%s> and service name %s\n", apikey, serviceName))
+	os.Stderr.WriteString(fmt.Sprintf("Sending as service name %s\n", serviceName))
+
+	hny := connectToHoneycomb(ctx)
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String(serviceName))),
+		// uncomment (one line here, plus four above) to see your events printed to the console
+		// sdktrace.WithSyncer(std),
+		sdktrace.WithBatcher(hny))
+
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+
+	return hny
+}
+
+func connectToHoneycomb(ctx context.Context) *otlp.Exporter {
+	apikey, _ := os.LookupEnv("HONEYCOMB_API_KEY")
+	os.Stderr.WriteString(fmt.Sprintf("Sending to Honeycomb with API Key <%s>\n", apikey))
 
 	// set up grpc
 	driver := otlpgrpc.NewClient(
@@ -43,18 +60,6 @@ func InitializeTracing(ctx context.Context) *otlp.Exporter {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String(serviceName))),
-		// uncomment (one line here, plus four above) to see your events printed to the console
-		// sdktrace.WithSyncer(std),
-		sdktrace.WithBatcher(hny))
-	if err != nil {
-		log.Fatal(err)
-	}
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
 	return hny
 }
