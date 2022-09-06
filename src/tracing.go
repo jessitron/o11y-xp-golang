@@ -29,6 +29,7 @@ func InitializeTracing(ctx context.Context) *otlp.Exporter {
 	os.Stderr.WriteString(fmt.Sprintf("Sending as service name %s\n", serviceName))
 
 	hny, hnyConfigured := connectToHoneycomb(ctx)
+	jaeger, jaegerConfigured := connectToJaeger(ctx)
 
 	opts := []sdktrace.TracerProviderOption{
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -41,6 +42,10 @@ func InitializeTracing(ctx context.Context) *otlp.Exporter {
 		opts = append(opts, sdktrace.WithBatcher(hny))
 	}
 
+	if jaegerConfigured {
+		opts = append(opts, sdktrace.WithBatcher(jaeger))
+	}
+
 	tp := sdktrace.NewTracerProvider(
 		opts...,
 	)
@@ -49,6 +54,29 @@ func InitializeTracing(ctx context.Context) *otlp.Exporter {
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
 	return hny
+}
+
+func connectToJaeger(ctx context.Context) (*otlp.Exporter, bool) {
+	loc, defined := os.LookupEnv("JAEGER_LOCATION")
+	if !defined {
+		os.Stderr.WriteString("To send traces to Jaeger, define JAEGER_LOCATION\n")
+		return nil, false
+	}
+
+	os.Stderr.WriteString(fmt.Sprintf("Sending to Jaeger at <%s>\n", loc))
+
+	// set up grpc
+	driver := otlpgrpc.NewClient(
+		otlpgrpc.WithInsecure(),
+		otlpgrpc.WithEndpoint(fmt.Sprintf("%s:4317", loc)),
+	)
+	j, err := otlp.New(ctx, driver)
+	if err != nil {
+		os.Stderr.WriteString(fmt.Sprintf("or not, I guess %s", err))
+		return nil, false
+	}
+
+	return j, true
 }
 
 func connectToHoneycomb(ctx context.Context) (*otlp.Exporter, bool) {
