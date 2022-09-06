@@ -31,12 +31,16 @@ func InitializeTracing(ctx context.Context) *otlp.Exporter {
 
 	hny := connectToHoneycomb(ctx)
 
+	tracerProviderOptions := make([]sdktrace.TracerProviderOption, 3)
+	tracerProviderOptions[0] = sdktrace.WithSampler(sdktrace.AlwaysSample())
+	tracerProviderOptions[1] = sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String(serviceName)))
+	tracerProviderOptions[2] = sdktrace.WithBatcher(hny)
+
 	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String(serviceName))),
-		// uncomment (one line here, plus four above) to see your events printed to the console
-		// sdktrace.WithSyncer(std),
-		sdktrace.WithBatcher(hny))
+		tracerProviderOptions...,
+	// uncomment (one line here, plus four above) to see your events printed to the console
+	// sdktrace.WithSyncer(std),
+	)
 
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
