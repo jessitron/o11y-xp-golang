@@ -172,7 +172,7 @@ func rootHandler(w http.ResponseWriter, req *http.Request) {
   </body>
 </html>`
 
-	fmt.Fprintf(w, html)
+	fmt.Fprint(w, html)
 }
 
 func jsHandler(w http.ResponseWriter, req *http.Request) {
@@ -265,5 +265,5 @@ stopButton.addEventListener("click", stop);
 
 `
 
-	fmt.Fprintf(w, js)
+	fmt.Fprint(w, js)
 }
