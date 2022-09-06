@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"google.golang.org/grpc/credentials"
@@ -29,17 +28,21 @@ func InitializeTracing(ctx context.Context) *otlp.Exporter {
 	serviceName, _ := os.LookupEnv("SERVICE_NAME")
 	os.Stderr.WriteString(fmt.Sprintf("Sending as service name %s\n", serviceName))
 
-	hny := connectToHoneycomb(ctx)
+	hny, hnyConfigured := connectToHoneycomb(ctx)
 
-	tracerProviderOptions := make([]sdktrace.TracerProviderOption, 3)
-	tracerProviderOptions[0] = sdktrace.WithSampler(sdktrace.AlwaysSample())
-	tracerProviderOptions[1] = sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String(serviceName)))
-	tracerProviderOptions[2] = sdktrace.WithBatcher(hny)
+	opts := []sdktrace.TracerProviderOption{
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String(serviceName))),
+		// uncomment (one line here, plus four above) to see your events printed to the console
+		// sdktrace.WithSyncer(std),
+	}
+
+	if hnyConfigured {
+		opts = append(opts, sdktrace.WithBatcher(hny))
+	}
 
 	tp := sdktrace.NewTracerProvider(
-		tracerProviderOptions...,
-	// uncomment (one line here, plus four above) to see your events printed to the console
-	// sdktrace.WithSyncer(std),
+		opts...,
 	)
 
 	otel.SetTracerProvider(tp)
@@ -48,8 +51,13 @@ func InitializeTracing(ctx context.Context) *otlp.Exporter {
 	return hny
 }
 
-func connectToHoneycomb(ctx context.Context) *otlp.Exporter {
-	apikey, _ := os.LookupEnv("HONEYCOMB_API_KEY")
+func connectToHoneycomb(ctx context.Context) (*otlp.Exporter, bool) {
+	apikey, defined := os.LookupEnv("HONEYCOMB_API_KEY")
+	if !defined {
+		os.Stderr.WriteString("To send traces to Honeycomb, define HONEYCOMB_API_KEY\n")
+		return nil, false
+	}
+
 	os.Stderr.WriteString(fmt.Sprintf("Sending to Honeycomb with API Key <%s>\n", apikey))
 
 	// set up grpc
@@ -62,8 +70,9 @@ func connectToHoneycomb(ctx context.Context) *otlp.Exporter {
 	)
 	hny, err := otlp.New(ctx, driver)
 	if err != nil {
-		log.Fatal(err)
+		os.Stderr.WriteString(fmt.Sprintf("or not, I guess %s", err))
+		return nil, false
 	}
 
-	return hny
+	return hny, true
 }
