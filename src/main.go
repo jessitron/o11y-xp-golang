@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"sync"
 
-  "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -22,10 +22,10 @@ import (
 )
 
 func main() {
-  err := godotenv.Load()
-  if err != nil {
-    os.Stdout.WriteString("Warning: No .env file found. Consider creating one\n");
-  }
+	err := godotenv.Load()
+	if err != nil {
+		os.Stdout.WriteString("Warning: No .env file found. Consider creating one\n")
+	}
 	ctx := context.Background()
 	hny := InitializeTracing(ctx)
 	defer hny.Shutdown(ctx) // let the exporter send all queued traces, after everything else in this block completes
