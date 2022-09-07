@@ -32,6 +32,22 @@ Activate the sequence of numbers by pushing **Go**. After you see numbers, push 
 
 Push `Ctrl-C` in the terminal where the app is running.
 
+## Connect tracing to Jaeger
+
+Set an environment variable `JAEGER_LOCATION` to the IP address (or domain name) where a Jaeger instance lives.
+If you're in a workshop, Jess will provide one.
+
+One handy way to set the right environment variables is to copy the example environment:
+
+`cp .env.example .env`
+
+Now edit the contents of `.env` to put in your API key. This file is ignored by git, so you
+won't accidentally commit your API key.
+
+The properties in `.env` are read in when the program starts up.
+
+Consider changing the OTEL_SERVICE_NAME variable to something unique, like your favorite animal.
+
 ## Configure Tracing to Honeycomb
 
 Our goal is to define a few environment variables. `tracing.go` reads these variables to send them to Honeycomb.
