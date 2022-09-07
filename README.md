@@ -8,7 +8,7 @@ a whole microservice ecosystem with just one service!
 
 Recommended:
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/honeycombio/intro-to-o11y-go)
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jessitron/o11y-xp-golang)
 
 Alternative:
 
